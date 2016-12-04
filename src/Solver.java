@@ -1,12 +1,11 @@
+import java.awt.Point;
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
-import java.util.ArrayList;
 
 public class Solver {
-	private int[][] puzzle;
-	
+	private int[][] puzzle;			
 	private boolean solved = false;
 	private Sudoku listerner;
 		
@@ -14,14 +13,16 @@ public class Solver {
 		puzzle = new int[9][9];
 	}
 	
+	// register a listener to this Solver 
 	public void bindListerner(Sudoku listerner) {
 		this.listerner = listerner;
 	}
 		
+	// start the recursive procedure and report the result
 	public void generateSolution() {
-		if (solve(0,0,puzzle)){    // solves in place
+		if (solve(puzzle)){    // solves in place
 			solved = true;
-			listerner.stateHasChanged();
+			listerner.stateHasChanged();		// notify the view to update
 			printGrid(puzzle);
 		}
 		else {
@@ -29,38 +30,61 @@ public class Solver {
 		}
 	}
 
-	private boolean solve(int i, int j, int[][] cells) {
-        if (i == 9) {
-            i = 0;
-            if (++j == 9)
-                return true;
-        }
-        if (cells[i][j] != 0)  // skip filled cells
-            return solve(i+1,j,cells);
-
-        for (int val = 1; val <= 9; ++val) {
-            if (valid(i,j,val,cells)) {
-                cells[i][j] = val;
-                if (solve(i+1,j,cells))
-                    return true;
+	// Take a partially filled grid and try to fill all free cells
+	// in order to find a solution
+	private boolean solve(int[][] cells) {
+        // find next free cell (x, y)
+		// if there's none, a solution is found
+		Point pt = new Point();
+		if(!findNextFreeCell(cells, pt)) {
+			return true;
+		}		
+		
+		// a free cell is found, try to assign a safe value
+		int x = (int)pt.getX();
+		int y = (int)pt.getY();
+		
+        // consider number 1 to 9
+		for (int val = 1; val <= 9; ++val) {
+			// a safe number is found
+			if (isSafe(x, y, val, cells)) {
+                cells[x][y] = val;	// tentative assignment
+                if (solve(cells))
+                    return true;		// successful return
+                cells[x][y] = 0; 	// failure, mark this cell to free again
             }
         }
-        cells[i][j] = 0; // reset on backtrack
-        return false;
+        return false;	// no safe number for this cell, has to backtrack
     }
 
 
-	public boolean valid(int i, int j, int val, int[][] cells) {
-		for (int k = 0; k < 9; ++k)  // row
+	private boolean findNextFreeCell(int[][] cells, Point pt) {
+		for(int i = 0; i < 9; i++) {
+			for(int j = 0; j < 9; j++) {
+				if(cells[i][j] == 0) {
+					pt.setLocation(i, j);
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+
+	
+	// To be safe at (i, j), val must:
+	// have no duplication in each row, col and subgrid
+	public boolean isSafe(int i, int j, int val, int[][] cells) {
+		for (int k = 0; k < 9; ++k)  // check col
             if (val == cells[k][j])
                 return false;
 
-        for (int k = 0; k < 9; ++k) // col
+        for (int k = 0; k < 9; ++k) // check row
             if (val == cells[i][k])
                 return false;
 
-        int boxRowOffset = (i / 3)*3;
-        int boxColOffset = (j / 3)*3;
+        //subgrid index starts with 0, 3, 6 
+        int boxRowOffset = (i / 3) * 3;
+        int boxColOffset = (j / 3) * 3;
         for (int k = 0; k < 3; ++k) // box
             for (int m = 0; m < 3; ++m)
                 if (val == cells[boxRowOffset+k][boxColOffset+m])
@@ -84,13 +108,14 @@ public class Solver {
 		puzzle[x][y] = val;
 	}
 
+	
+	// load puzzle from file
 	public void setPuzzle(String filepath) {
 		BufferedReader br;
 		try {
 			br = new BufferedReader(new FileReader(filepath));
 			String line = "";
 			int lineNo = 0;
-			ArrayList<String> lines= new ArrayList<String>();
 			while((line = br.readLine()) != null) {
 				String[] tokens = line.split(" ");
 				for(int i = 0; i < 9; i++) {

@@ -1,4 +1,3 @@
-import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Container;
 import java.awt.Dimension;
@@ -6,8 +5,6 @@ import java.awt.Font;
 import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.awt.event.KeyEvent;
-
 import javax.swing.BorderFactory;
 import javax.swing.JFrame;
 import javax.swing.JMenu;
@@ -16,12 +13,10 @@ import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
-import javax.swing.KeyStroke;
 import javax.swing.UIManager;
-import javax.swing.event.DocumentEvent;
-import javax.swing.event.DocumentListener;
-import javax.swing.text.BadLocationException;
+import javax.swing.UIManager.LookAndFeelInfo;
 
+@SuppressWarnings("serial")
 public class Sudoku extends JFrame{
 
 	private Solver solver;			
@@ -36,7 +31,7 @@ public class Sudoku extends JFrame{
 	public static final Color CELL_BGCOLOR = new Color(0x92, 0xEE, 0xF2);
 	public static final Font FONT_NUMBERS = new Font("Monospaced", Font.BOLD, 20);
 
-	// The game board composes of 9x9 JTextcells,
+	// The game board composes of 9x9 JTextcells
 	private Container cp;		// top content panel
 	private JPanel[][] panels;		// each element is a subgrid
 	private Cell[][] cells;	// each cell is a JTextField
@@ -71,8 +66,8 @@ public class Sudoku extends JFrame{
 						int xpos = cellSelected.x();
 						int ypos = cellSelected.y();
 						int val = Integer.parseInt(cellSelected.getText());
-						if(!solver.valid(xpos, ypos, val, solver.getPuzzle())) {
-							JOptionPane.showMessageDialog(Sudoku.this, "Invalid input");
+						if(!solver.isSafe(xpos, ypos, val, solver.getPuzzle())) {
+							JOptionPane.showMessageDialog(Sudoku.this, "This number is not safe here!");
 							cellSelected.setText("");
 							return;
 						}
@@ -83,38 +78,6 @@ public class Sudoku extends JFrame{
 					}
 					
 				});
-
-//				cells[y][x].getDocument().putProperty("owner", cells[y][x]);
-//				cells[y][x].getDocument().addDocumentListener(new DocumentListener() {
-//			
-//					@Override
-//					public void removeUpdate(DocumentEvent e) {
-//						// TODO Auto-generated method stub
-//						
-//					}
-//					
-//					@Override
-//					public void insertUpdate(DocumentEvent e) {
-//
-//						Cell cellSelected = (Cell) e.getDocument().getProperty("owner");
-//						System.out.println(cellSelected.getText());
-//						int xpos = cellSelected.x();
-//						int ypos = cellSelected.y();
-//						int val = Integer.parseInt(cellSelected.getText());
-//						if(!solver.valid(xpos, ypos, val, solver.getPuzzle())) {
-//							JOptionPane.showMessageDialog(Sudoku.this, "Invalid input");
-//							cellSelected.setText("");
-//						}
-//						
-//						System.out.println("x: " + cellSelected.x() + ", y: " + cellSelected.y());	
-//						solver.setPuzzleCell(xpos, ypos, val);
-//					}
-//					
-//					@Override
-//					public void changedUpdate(DocumentEvent e) {
-//						
-//					}
-//				});
 				panels[y / 3][x / 3].add(cells[y][x]);
 			}
 		}
@@ -150,7 +113,7 @@ public class Sudoku extends JFrame{
 		cp.setPreferredSize(new Dimension(CANVAS_WIDTH, CANVAS_HEIGHT));
 		cp.setBackground(Color.WHITE);
 		pack();
-
+		setLocationRelativeTo(null);
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);  // Handle window closing
 		setTitle("Sudoku");
 		setVisible(true);
@@ -163,6 +126,8 @@ public class Sudoku extends JFrame{
 		updateGrid(solver.getPuzzle());
 	}
 
+	
+	// update view when getting notified of model changes
 	public void updateGrid(int[][] grid) {
 		for (int row = 0; row < 9; ++row) {
 			for (int col = 0; col < 9; ++col) {
@@ -172,8 +137,6 @@ public class Sudoku extends JFrame{
 				cells[row][col].setEditable(false);
 
 				cells[row][col].setBackground(CELL_BGCOLOR);
-
-				// Beautify all the cells
 				cells[row][col].setHorizontalAlignment(JTextField.CENTER);
 				cells[row][col].setFont(FONT_NUMBERS);
 			}
@@ -181,6 +144,8 @@ public class Sudoku extends JFrame{
 
 	}
 
+	
+	
 	public void setEditable(boolean enable) {
 		for(int i = 0; i < 9; i++) {
 			for(int j = 0; j < 9; j++) {
@@ -195,13 +160,17 @@ public class Sudoku extends JFrame{
 	
 		
 	public static void main(String[] args) {
-		// Use System Look and Feel
-		try { 
-			UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName()); 
+		try {
+		    for (LookAndFeelInfo info : UIManager.getInstalledLookAndFeels()) {
+		        if ("Nimbus".equals(info.getName())) {
+		            UIManager.setLookAndFeel(info.getClassName());
+		            break;
+		        }
+		    }
+		} catch (Exception e) {
+		    // If Nimbus is not available, set the GUI to another look and feel.
 		}
-		catch (Exception ex) { 
-			ex.printStackTrace(); 
-		}
+
 		new Sudoku();
 	}
 }
